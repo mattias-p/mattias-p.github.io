@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Metronom</title>
+    <script src="vue.js"></script>
+    <script src="metronome.js"></script>
+    <style>
+        div#app {
+            text-align: center;
+        }
+        .dial {
+            display: block;
+            font-size: 4em;
+        }
+        .unit {
+            display: block;
+            font-size: 1.5em;
+        }
+        .instrument > input {
+            font-size: 2em;
+            width: 2em;
+            height: 2em;
+            padding: 0;
+        }
+        .state > input {
+            font-size: 3em;
+            padding: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <p class="state">
+            <input type="button" v-bind:value="active_label" v-on:click="update_active" />
+        </p>
+        <p class="instrument">
+            <span class="dial">{{ bpm }}</span>
+            <span class="unit">beats per minute</span>
+            <input type="button" value="+" v-on:click="raise_tempo" />
+            <input type="button" value="-" v-on:click="lower_tempo" />
+        </p>
+        <p class="instrument">
+            <span class="dial">{{ measure }}</span>
+            <span class="unit">beats per measure</span>
+            <input type="button" value="+" v-on:click="raise_metre" />
+            <input type="button" value="-" v-on:click="lower_metre" />
+        </p>
+    </div>
+
+    <p>Credits:</p>
+    <ul>
+        <li><a href="https://www.fesliyanstudios.com/sound-effects-search.php">Free sound effects courtesy of Fesliyan Studios</a></li>
+    </ul>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                active: metronome.active,
+                active_label: 'Start',
+                bpm: metronome.bpm,
+                measure: metronome.measure,
+            },
+            methods: {
+                update_active: function () {
+                    this.active = !this.active;
+                    this.active_label = this.active ? 'Stop' : 'Start';
+                    metronome.active = this.active;
+                },
+                raise_tempo: function () {
+                    if (this.bpm < 320) {
+                        this.bpm += 5;
+                        metronome.bpm = this.bpm;
+                    }
+                },
+                lower_tempo: function () {
+                    if (this.bpm > 30) {
+                        this.bpm -= 5;
+                        metronome.bpm = this.bpm;
+                    }
+                },
+                raise_metre: function () {
+                    if (this.measure < 12) {
+                        this.measure += 1;
+                        metronome.measure = this.measure;
+                    }
+                },
+                lower_metre: function () {
+                    if (this.measure > 1) {
+                        this.measure -= 1;
+                        metronome.measure = this.measure;
+                    }
+                },
+            },
+        });
+    </script>
+</body>
+</html>
