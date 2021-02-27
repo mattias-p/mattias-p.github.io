@@ -1,78 +1,80 @@
-const Player = function () {
-    var beat = 0;
-    var sample = 0;
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioContext = new AudioContext();
 
-    const samples = [
-        [ new Audio('c.mp3'), new Audio('c.distant.mp3'), ],
-        [ new Audio('c.mp3'), new Audio('c.distant.mp3'), ],
-        [ new Audio('c.mp3'), new Audio('c.distant.mp3'), ],
-        [ new Audio('c.mp3'), new Audio('c.distant.mp3'), ],
-    ];
+const fetchAudioBuffer = function (_request) {
+    return fetch(_request)
+        .then(response => {
+            return response.arrayBuffer();
+        })
+        .then(arrayBuffer => {
+            return audioContext.decodeAudioData(arrayBuffer);
+        });
+};
 
-    this.play = function (measure) {
-        samples[sample][beat == 0 ? 0 : 1].play();
+const Scheduler = function (_interval, _bufStrong, _bufWeak) {
+    const bufStrong = _bufStrong;
+    const bufWeak = _bufWeak;
+    const interval = _interval; // seconds
 
-        beat += 1;
-        if (beat >= measure) {
-            beat = 0;
+    this.period = 0.500; // seconds
+    this.beatsPerBar = 4;
+
+    var beatCount = 0;
+    var beatTime = audioContext.currentTime;
+
+    this.schedule = function () {
+        console.log("scheduler.schedule " + this.period);
+        const passedTime = audioContext.currentTime - beatTime;
+        if (passedTime > 0) {
+            beatTime += Math.floor(passedTime / this.period) * this.period;
         }
+        while (beatTime + this.period <= audioContext.currentTime + interval) {
+            if (beatCount >= this.beatsPerBar) {
+                beatCount = 0;
+            }
+            const buffer = (beatCount == 0) ? bufStrong : bufWeak;
+            beatCount += 1;
+            beatTime += this.period;
 
-        sample += 1;
-        sample %= samples.length;
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(beatTime);
+        }
     };
 
     this.reset = function () {
-        beat = 0;
+        beatCount = 0;
+        beatTime = audioContext.currentTime;
     };
-}
+};
 
-const Clock = function (_callback) {
+const Clock = function (_period, _callback) {
     const callback = _callback;
-    var interval = 10000;
-    var last_tick = null;
-    var timeout_id = null;
-
-    const now = function() {
-        return new Date().getTime();
-    };
+    var period = _period * 1000.0; // milliseconds
+    var timeoutId = null;
 
     const tick = function() {
-        last_tick += interval;
         callback();
-        timeout_id = setTimeout(tick, last_tick + interval - now());
+        timeoutId = setTimeout(tick, period);
     };
 
     Object.defineProperty(this, 'active', {
         get () {
-            return timeout_id != null;
+            return timeoutId != null;
         },
         set (_active) {
             let active = this.active;
-            if (_active && !active) {
-                last_tick = now();
-                callback();
-                timeout_id = setTimeout(tick, interval);
-            }
-            else if (!_active && active) {
-                clearTimeout(timeout_id);
-                timeout_id = null;
-            }
-        },
-    });
-
-    Object.defineProperty(this, 'interval', {
-        get () {
-            return interval;
-        },
-        set (_interval) {
-            interval = _interval;
             if (this.active) {
-                clearTimeout(timeout_id);
-                var _timeout = last_tick + interval - now();
-                if (_timeout > 0) {
-                    timeout_id = setTimeout(tick, _timeout);
+                if (!_active) {
+                    console.log("clock.active, disabling");
+
+                    clearTimeout(timeoutId);
+                    timeoutId = null;
                 }
-                else {
+            } else {
+                if (_active) {
+                    console.log("clock.active, enabling");
                     tick();
                 }
             }
@@ -80,27 +82,32 @@ const Clock = function (_callback) {
     });
 }
 
-const Metronome = function(_bpm, _measure) {
-    const self = this;
-    this.measure = _measure;
+const Metronome = function(_beatsPerMinute, _beatsPerBar, _clockPeriod, _schedulerInterval, _bufStrong, _bufWeak) {
+    const scheduler = new Scheduler(_schedulerInterval, _bufStrong, _bufWeak);
+    const clock = new Clock(_clockPeriod, () => scheduler.schedule());
 
-    const player = new Player();
-
-    const clock = new Clock(function() {
-        player.play(self.measure);
-    });
-
-    var bpm;
-    Object.defineProperty(this, 'bpm', {
+    var beatsPerMinute;
+    Object.defineProperty(this, 'beatsPerMinute', {
         get() {
-            return bpm;
+            return beatsPerMinute;
         },
-        set(_bpm) {
-            bpm = _bpm;
-            clock.interval = 60000.0 / bpm;
+        set(_beatsPerMinute) {
+            console.log("bpm");
+            beatsPerMinute = _beatsPerMinute;
+            scheduler.period = 60.0 / beatsPerMinute;
         },
     });
-    this.bpm = _bpm;
+    this.beatsPerMinute = _beatsPerMinute;
+
+    Object.defineProperty(this, 'beatsPerBar', {
+        get() {
+            return scheduler.beatsPerBar;
+        },
+        set(_beatsPerBar) {
+            scheduler.beatsPerBar = _beatsPerBar;
+        },
+    });
+    this.beatsPerBar = _beatsPerBar;
 
     Object.defineProperty(this, 'active', {
         get() {
@@ -108,11 +115,9 @@ const Metronome = function(_bpm, _measure) {
         },
         set(_active) {
             if (_active != clock.active) {
-                player.reset();
+                scheduler.reset();
             }
             clock.active = _active;
         },
     });
 };
-
-metronome = new Metronome(120, 4);
