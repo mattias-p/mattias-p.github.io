@@ -1,28 +1,146 @@
+input[type=button] {
+    touch-action: manipulation; /* Prevent double-tap zoom in Safari */
+    background: linear-gradient(0deg, #AAA 0%, #EEE 100%);
+}
 div#app {
     text-align: center;
 }
-input {
-    background: linear-gradient(0deg, #AAA 0%, #EEE 100%);
+.state > input {
+    width: 100%;
+    font-size: 3em;
+    padding: 0.25em;
+    margin-top: 0.75em;
 }
-.dial {
+.instrument + .instrument, .state + .instrument {
+    margin-top: 2em;
+}
+
+output {
     display: block;
-    font-size: 4em;
+    font-size: 3em;
 }
-.unit {
+label {
     display: block;
     font-size: 1.5em;
 }
-.instrument > input {
-    font-size: 2em;
-    height: 4em;
-    width: 33.3%;
-    padding: 0;
+
+
+/*
+ * Unstyle the range element
+ */
+
+input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
 }
-.state > input {
-    font-size: 3em;
-    padding: 1em;
-    width: 66.6%;
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
 }
-.instrument + .instrument, .state + .instrument {
-    margin-top: 3em;
+
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent; 
+  border-color: transparent;
+  color: transparent;
+}
+
+/*
+ * Slider thumb
+ */
+input[type=range] {
+	margin: 3.0em 0;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 0.1em solid #000000;
+  height: 5.8em;
+  width: 2.9em;
+  border-radius: 0.5em;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: 0; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+
+input[type=range]::-moz-range-thumb {
+  border: 0.1em solid #000000;
+  height: 5.8em;
+  width: 2.9em;
+  border-radius: 0.5em;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+input[type=range]::-ms-thumb {
+  border: 0.1em solid #000000;
+  height: 5.8em;
+  width: 2.9em;
+  border-radius: 0.5em;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+/*
+ * Slider track
+ */
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6.0em;
+  cursor: pointer;
+  background: #3071a9;
+  border-radius: 0.6em;
+  border: 0.1em solid #010101;
+margin: -3.0em 0;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #367ebd;
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 6.0em;
+  cursor: pointer;
+  background: #3071a9;
+  border-radius: 0.6em;
+  border: 0.1em solid #010101;
+}
+
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 6.0em;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  border-width: 16px 0;
+  color: transparent;
+}
+
+input[type=range]::-ms-fill-lower {
+  background: #2a6495;
+  border: 0.1em solid #010101;
+  border-radius: 0.6em;
+}
+
+input[type=range]:focus::-ms-fill-lower {
+  background: #3071a9;
+}
+
+input[type=range]::-ms-fill-upper {
+  background: #3071a9;
+  border: 0.1em solid #010101;
+  border-radius: 0.6em;
+}
+
+input[type=range]:focus::-ms-fill-upper {
+  background: #367ebd;
 }

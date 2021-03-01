@@ -1,13 +1,24 @@
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioContext = new AudioContext();
 
+const debug = function(_text) {
+    const ul = document.querySelector("#debug");
+    const li = document.createElement("li");
+    const text = document.createTextNode(_text);
+    li.appendChild(text);
+    ul.appendChild(li);
+};
+
 const fetchAudioBuffer = function (_request) {
     return fetch(_request)
         .then(response => {
             return response.arrayBuffer();
         })
         .then(arrayBuffer => {
-            return audioContext.decodeAudioData(arrayBuffer);
+            // The promise interface of decodeAudioData does not work on Safari
+            return new Promise((resolve, reject) => {
+                audioContext.decodeAudioData(arrayBuffer, resolve, reject);
+            });
         });
 };
 
@@ -23,10 +34,8 @@ const Scheduler = function (_interval, _bufStrong, _bufWeak) {
     var beatTime = audioContext.currentTime;
 
     this.schedule = function () {
-        console.log("scheduler.schedule " + this.period);
-        const passedTime = audioContext.currentTime - beatTime;
-        if (passedTime > 0) {
-            beatTime += Math.floor(passedTime / this.period) * this.period;
+        if (beatTime == null) {
+            beatTime = audioContext.currentTime - this.period;
         }
         while (beatTime + this.period <= audioContext.currentTime + interval) {
             if (beatCount >= this.beatsPerBar) {
@@ -45,7 +54,7 @@ const Scheduler = function (_interval, _bufStrong, _bufWeak) {
 
     this.reset = function () {
         beatCount = 0;
-        beatTime = audioContext.currentTime;
+        beatTime = null;
     };
 };
 
@@ -92,7 +101,6 @@ const Metronome = function(_beatsPerMinute, _beatsPerBar, _clockPeriod, _schedul
             return beatsPerMinute;
         },
         set(_beatsPerMinute) {
-            console.log("bpm");
             beatsPerMinute = _beatsPerMinute;
             scheduler.period = 60.0 / beatsPerMinute;
         },

@@ -2,31 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1, maximum-scale=1"/>
     <title>Metronome</title>
+    <link rel="stylesheet" href="metronome.css" />
     <script src="vue.min.js"></script>
     <script src="metronome.js"></script>
-    <link rel="stylesheet" href="metronome.css" />
 </head>
 <body>
+    <ul id="debug"></ul>
     <div id="app">
+        <div class="instrument">
+            <form oninput="update_bpm()">
+                <output id="bpm_output" for="bpm_slider"></output>
+                <label for="bpm_slider">beats per minute</label>
+                <input id="bpm_slider" type="range" min="0" max="1" value="0" />
+            </form>
+        </div>
+        <div class="instrument">
+            <form oninput="update_bpb()">
+                <output id="bpb_output" for="bpb_slider"></output>
+                <label for="bpb_slider">beats per bar</label>
+                <input id="bpb_slider" type="range" min="1" max="12" value="4" />
+            </form>
+        </div>
         <div class="state">
             <input type="button" v-bind:value="active_label" v-on:click="update_active" />
-        </div>
-        <div class="instrument">
-            <p>
-                <span class="dial">{{ bpm }}</span>
-                <span class="unit">beats per minute</span>
-            </p>
-            <input type="button" value="-" v-on:click="lower_tempo" />
-            <input type="button" value="+" v-on:click="raise_tempo" />
-        </div>
-        <div class="instrument">
-            <p>
-                <span class="dial">{{ measure }}</span>
-                <span class="unit">beats per measure</span>
-            </p>
-            <input type="button" value="-" v-on:click="lower_metre" />
-            <input type="button" value="+" v-on:click="raise_metre" />
         </div>
     </div>
 
@@ -38,48 +38,68 @@
     <script>
         var metronome;
         var app;
+        const bpm_values = calc_bpm_values();
         function init(bufStrong, bufWeak) {
-            metronome = new Metronome(120, 4, 0.025, 0.100, bufStrong, bufWeak, audioContext);
+            metronome = new Metronome(88, 4, 0.025, 0.100, bufStrong, bufWeak, audioContext);
             app = new Vue({
                 el: '#app',
                 data: {
                     active: metronome.active,
                     active_label: 'Start',
-                    bpm: metronome.beatsPerMinute,
-                    measure: metronome.beatsPerBar,
                 },
                 methods: {
                     update_active: function () {
+                        audioContext.resume(); // Safari requires that we resume the AudioContext in a user event"
                         this.active = !this.active;
                         this.active_label = this.active ? 'Stop' : 'Start';
                         metronome.active = this.active;
                     },
-                    raise_tempo: function () {
-                        if (this.bpm < 320) {
-                            this.bpm += 5;
-                            metronome.beatsPerMinute = this.bpm;
-                        }
-                    },
-                    lower_tempo: function () {
-                        if (this.bpm > 30) {
-                            this.bpm -= 5;
-                            metronome.beatsPerMinute = this.bpm;
-                        }
-                    },
-                    raise_metre: function () {
-                        if (this.measure < 12) {
-                            this.measure += 1;
-                            metronome.beatsPerBar = this.measure;
-                        }
-                    },
-                    lower_metre: function () {
-                        if (this.measure > 1) {
-                            this.measure -= 1;
-                            metronome.beatsPerBar = this.measure;
-                        }
-                    },
                 },
             });
+
+            const bpm_slider = document.querySelector('#bpm_slider');
+            const bpm_output = document.querySelector('#bpm_output');
+            const bpm_init = metronome.beatsPerMinute;
+            const bpm_index = bpm_values.findIndex(x => {
+                return x >= bpm_init;
+            });
+            const bpm_actual = bpm_values[bpm_index];
+            metronome.beatsPerMinute = bpm_actual;
+            bpm_output.value = bpm_actual;
+            bpm_slider.min = 0;
+            bpm_slider.max = bpm_values.length - 1;
+            bpm_slider.value = bpm_index;
+
+            const bpb = metronome.beatsPerBar;
+            document.querySelector('#bpb_slider').value = bpb;
+            document.querySelector('#bpb_output').value = bpb;
+        }
+
+        function update_bpm() {
+            const value = bpm_values[document.querySelector('#bpm_slider').value];
+            document.querySelector('#bpm_output').value = value;
+            metronome.beatsPerMinute = value;
+        }
+
+        function update_bpb() {
+            const value = document.querySelector('#bpb_slider').value;
+            document.querySelector('#bpb_output').value = value;
+            metronome.beatsPerBar = value;
+        }
+
+        function calc_bpm_values() {
+            // max=260 and steps=25 just happen to result in nice values
+            const max = 260.0;
+            const steps = 25;
+            const c = 1.0 / Math.sqrt(1 + (1.0 / steps)) / steps;
+            var bpm = max;
+            const result = [];
+            while (bpm >= 30) {
+                result.push(bpm);
+                bpm -= Math.round(c * bpm);
+            }
+            result.reverse();
+            return result;
         }
 
         Promise.all([
